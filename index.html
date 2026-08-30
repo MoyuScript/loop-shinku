@@ -1,12 +1,14 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>无尽真红的小曲</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        html, body {
+        html,
+        body {
             min-height: 100%;
             margin: 0;
         }
@@ -37,33 +39,63 @@
             z-index: 1;
         }
 
-        .btn-loop { transition: all 0.2s ease; }
-        .btn-loop:active { transform: scale(0.95); }
-        
-        /* 播放中：绿色脉冲 */
-        .state-playing { background-color: #48bb78 !important; color: white !important; box-shadow: 0 0 15px rgba(72, 187, 120, 0.6); }
-        /* 排队中：黄色闪烁 */
-        .state-queued { background-color: #ecc94b !important; color: #1a202c !important; animation: flash 1s infinite alternate; }
-        /* 停止动作激活：红色 */
-        .state-stopped-active { background-color: #f56565 !important; color: white !important; }
-        
-        @keyframes flash {
-            0% { opacity: 1; box-shadow: 0 0 15px rgba(236, 201, 75, 0.8); }
-            100% { opacity: 0.6; box-shadow: 0 0 5px rgba(236, 201, 75, 0.2); }
+        .btn-loop {
+            transition: all 0.2s ease;
         }
-        
-        .progress-bar { transition: width 0.15s linear; }
+
+        .btn-loop:active {
+            transform: scale(0.95);
+        }
+
+        /* 播放中：绿色脉冲 */
+        .state-playing {
+            background-color: #48bb78 !important;
+            color: white !important;
+            box-shadow: 0 0 15px rgba(72, 187, 120, 0.6);
+        }
+
+        /* 排队中：黄色闪烁 */
+        .state-queued {
+            background-color: #ecc94b !important;
+            color: #1a202c !important;
+            animation: flash 1s infinite alternate;
+        }
+
+        /* 停止动作激活：红色 */
+        .state-stopped-active {
+            background-color: #f56565 !important;
+            color: white !important;
+        }
+
+        @keyframes flash {
+            0% {
+                opacity: 1;
+                box-shadow: 0 0 15px rgba(236, 201, 75, 0.8);
+            }
+
+            100% {
+                opacity: 0.6;
+                box-shadow: 0 0 5px rgba(236, 201, 75, 0.2);
+            }
+        }
+
+        .progress-bar {
+            transition: width 0.15s linear;
+        }
+
         kbd {
-            background-color: rgba(255,255,255,0.2);
+            background-color: rgba(255, 255, 255, 0.2);
             padding: 2px 6px;
             border-radius: 4px;
             font-size: 0.75rem;
             margin-left: 8px;
             font-family: monospace;
         }
+
         .key-pad-btn {
             transition: transform 0.1s ease, background-color 0.1s ease;
         }
+
         .key-active {
             transform: scale(0.95);
             background-color: #3182ce !important;
@@ -71,510 +103,567 @@
         }
     </style>
 </head>
+
 <body class="min-h-screen flex flex-col p-6">
     <div class="page-shell min-h-screen flex flex-col">
 
-    <!-- 顶栏与全局控制 -->
-    <header class="flex justify-between items-center mb-6 bg-gray-800/80 backdrop-blur-md p-4 rounded-xl shadow-lg border border-gray-700/80">
-        <div>
-            <h1 class="text-2xl font-bold text-white tracking-wide">无尽真红的小曲 <span class="text-sm font-normal text-gray-400">| 100 BPM - 4/4拍 - 8小节循环</span></h1>
-            <p class="text-gray-400 text-sm mt-1">上传循环音频切片进行混音，或长按数字键 0-7 实时演奏长音合成器</p>
-        </div>
-        <button id="master-btn" class="bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 px-8 rounded-lg shadow-lg text-lg transition-colors">
-            ▶ 启动引擎 (全局播放)
-        </button>
-    </header>
+        <!-- 顶栏与全局控制 -->
+        <header
+            class="flex justify-between items-center mb-6 bg-gray-800/80 backdrop-blur-md p-4 rounded-xl shadow-lg border border-gray-700/80">
+            <div>
+                <h1 class="text-2xl font-bold text-white tracking-wide">无尽真红的小曲 <span
+                        class="text-sm font-normal text-gray-400">| 100 BPM - 4/4拍 - 8小节循环</span></h1>
+                <p class="text-gray-400 text-sm mt-1">上传循环音频切片进行混音，或长按数字键 0-7 实时演奏长音合成器</p>
+            </div>
+            <button id="master-btn"
+                class="bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 px-8 rounded-lg shadow-lg text-lg transition-colors">
+                ▶ 启动引擎 (全局播放)
+            </button>
+        </header>
 
-    <!-- 循环进度条 -->
-    <div class="w-full bg-gray-800/80 backdrop-blur-md h-6 rounded-full mb-6 overflow-hidden border border-gray-700/80 relative shadow-inner">
-        <div id="progress-bar" class="progress-bar h-full bg-gradient-to-r from-blue-500 to-teal-400 w-0"></div>
-        <div class="absolute inset-0 flex items-center justify-between px-4 text-xs font-bold text-gray-300 pointer-events-none">
-            <span>第1小节</span><span>第3小节</span><span>第5小节</span><span>第7小节</span>
-        </div>
-    </div>
-
-    <!-- 轨道网格 -->
-    <div class="grid grid-cols-5 gap-6 mb-6">
-        <!-- 轨道模板将在JS中动态渲染 -->
-    </div>
-
-    <!-- 手动合成器弹奏面板 -->
-    <div class="bg-gray-800/80 backdrop-blur-md border border-gray-700/80 rounded-xl p-4 shadow-lg">
-        <div class="flex justify-between items-center mb-4">
-            <h2 class="text-lg font-bold text-white flex items-center gap-2">
-                🎹 手动实时合成器 <span class="text-xs bg-indigo-600 text-white px-2 py-0.5 rounded">支持长音 (Hold) · 包含按键 0 (G4)</span>
-            </h2>
-            <div class="flex items-center gap-4">
-                <!-- 合成器音量滑块控制 -->
-                <div class="flex items-center gap-2 bg-gray-700 px-3 py-1.5 rounded-lg border border-gray-600">
-                    <span class="text-xs text-gray-300 font-medium">合成器音量</span>
-                    <input type="range" id="synth-volume" min="0" max="1" step="0.05" value="0.3" class="w-24 accent-indigo-500 cursor-pointer">
-                    <span id="synth-volume-val" class="text-xs text-gray-400 w-8 text-right">30%</span>
-                </div>
-                <span class="text-xs text-gray-400">长按键盘数字键 <kbd>0</kbd>、<kbd>1</kbd> 至 <kbd>7</kbd> 持续发声</span>
+        <!-- 循环进度条 -->
+        <div
+            class="w-full bg-gray-800/80 backdrop-blur-md h-6 rounded-full mb-6 overflow-hidden border border-gray-700/80 relative shadow-inner">
+            <div id="progress-bar" class="progress-bar h-full bg-gradient-to-r from-blue-500 to-teal-400 w-0"></div>
+            <div
+                class="absolute inset-0 flex items-center justify-between px-4 text-xs font-bold text-gray-300 pointer-events-none">
+                <span>第1小节</span><span>第3小节</span><span>第5小节</span><span>第7小节</span>
             </div>
         </div>
-        <div class="grid grid-cols-8 gap-3 mb-4" id="synth-keyboard">
-            <!-- 动态生成 G4 和 A-G 琴键 -->
+
+        <!-- 轨道网格 -->
+        <div class="grid grid-cols-5 gap-6 mb-6">
+            <!-- 轨道模板将在JS中动态渲染 -->
         </div>
 
-        <!-- 乐谱备注区域 -->
-        <div class="bg-gray-900/70 border border-gray-700/80 rounded-lg p-3 text-xs font-mono text-gray-300 leading-relaxed overflow-x-auto backdrop-blur-sm">
-            <div class="text-indigo-400 font-bold mb-1">🎼 乐谱提示参考</div>
-            <div class="text-gray-400">[G]</div>
-            <div>[QAZ]</div>
-            <div>1 1 2 2 1 2 3 4 5 / 5 4 3 1 2 3 4 5</div>
-            <div>1 1 2 2 3 4 5 4 3 / 3 2 1 3 2 2 4 3</div>
-            <div class="text-gray-400 mt-1">[WSXT]</div>
-            <div>5 4 / 3 1 3 3 2 1 0 / 0 0 1 1 2 3 4</div>
-            <div>5 4 / 3 1 3 4 2 1 0 / 0 0 1 5 5 4 3 4</div>
-            <div class="text-gray-400 mt-1">[EDCY]</div>
-            <div>3 4 / 5 4 7 5 4 4 5 5 4 / 4 3 0 1</div>
-            <div>3 4 / 5 4 7 5 4 4 5 5 4 / 4 4 5</div>
-            <div>3 4 / 5 4 7 5 4 4 5 5 4 / 4 2 4 3 2 1</div>
-            <div>1 0 / 1 5 1 0 1 5 1 0 1</div>
-            <div class="text-gray-400 mt-1">[QAZI]</div>
+        <!-- 手动合成器弹奏面板 -->
+        <div class="bg-gray-800/80 backdrop-blur-md border border-gray-700/80 rounded-xl p-4 shadow-lg">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-lg font-bold text-white flex items-center gap-2">
+                    🎹 手动实时合成器 <span class="text-xs bg-indigo-600 text-white px-2 py-0.5 rounded">支持长音 (Hold) · 包含按键 0
+                        (G4)</span>
+                </h2>
+                <div class="flex items-center gap-4">
+                    <!-- 合成器音量滑块控制 -->
+                    <div class="flex items-center gap-2 bg-gray-700 px-3 py-1.5 rounded-lg border border-gray-600">
+                        <span class="text-xs text-gray-300 font-medium">合成器音量</span>
+                        <input type="range" id="synth-volume" min="0" max="1" step="0.05" value="0.3"
+                            class="w-24 accent-indigo-500 cursor-pointer">
+                        <span id="synth-volume-val" class="text-xs text-gray-400 w-8 text-right">30%</span>
+                    </div>
+                    <span class="text-xs text-gray-400">长按键盘数字键 <kbd>0</kbd>、<kbd>1</kbd> 至 <kbd>7</kbd> 持续发声</span>
+                </div>
+            </div>
+            <div class="grid grid-cols-8 gap-3 mb-4" id="synth-keyboard">
+                <!-- 动态生成 G4 和 A-G 琴键 -->
+            </div>
+
+            <!-- 乐谱备注区域 -->
+            <div
+                class="bg-gray-900/70 border border-gray-700/80 rounded-lg p-3 text-xs font-mono text-gray-300 leading-relaxed overflow-x-auto backdrop-blur-sm grid grid-cols-3 gap-4">
+                <div>
+                    <div>预备拍</div>
+                    <div>[G]</div>
+                    <div>前奏</div>
+                    <div>[QAZ]</div>
+                    <div>3 4 / 5 4 3 2 3 2 1 3 4 / 5 4 7 5</div>
+                    <div>3 4 / 5 4 3 2 3 2 1 1 2 / 3 4 2 3</div>
+                    <div>主歌</div>
+                    <div>1 1 2 2 1 2 3 4 5 / 5 4 3 1 2 3 4 5</div>
+                    <div>1 1 2 2 3 4 5 4 3 / 3 2 1 3 2 2 4 3</div>
+                    <div>预副歌</div>
+                    <div>[WSXT]</div>
+                    <div>5 4 / 3 1 3 3 2 1 0 / 0 0 1 1 2 3 4</div>
+                    <div>5 4 / 3 1 3 4 2 1 0 / 0 0 1 5 5 4 3 4</div>
+                    <div>副歌</div>
+                    <div>[EDCY]</div>
+                    <div>3 4 / 5 4 7 5 4 4 5 5 4 / 4 3 0 1</div>
+                    <div>3 4 / 5 4 7 5 4 4 5 5 4 / 4 4 5</div>
+                    <div>3 4 / 5 4 7 5 4 4 5 5 4 / 4 2 4 3 2 1</div>
+                    <div>1 0 / 1 5 1 0 1 5 1 0 1</div>
+                </div>
+                <div>
+                    <div>主歌</div>
+                    <div>[QAZI]</div>
+                    <div>1 1 2 2 1 2 3 4 5 / 5 4 3 1 3 2 3 4 5</div>
+                    <div>1 1 2 2 3 4 5 4 3 / 3 2 1 3 2 2 4 3</div>
+                    <div>预副歌</div>
+                    <div>[WSXT]</div>
+                    <div>5 4 / 3 1 3 3 2 1 0 / 0 0 1 1 2 3 4</div>
+                    <div>5 4 / 3 1 3 4 2 1 0 / 0 0 1 5 5 4 3 4</div>
+                    <div>副歌</div>
+                    <div>[EDCY]</div>
+                    <div>3 4 / 5 4 7 5 4 4 5 5 4 / 4 3 0 1</div>
+                    <div>3 4 / 5 4 7 5 4 4 5 5 4 / 4 4 5</div>
+                    <div>3 4 / 5 4 7 5 4 4 5 5 4 / 4 2 4 3 2 1</div>
+                    <div>1 0 / 1 5 1 0 1 5 1 0 1</div>
+                </div>
+                <div>
+                    <div>间奏</div>
+                    <div>[QAZI]</div>
+                    <div>3 4 / 5 4 3 2 3 2 1 3 / 4 5 4 7 5</div>
+                    <div>3 4 / 5 4 3 2 3 2 1 1 / 2 3 4 2 3</div>
+                    <div>桥段</div>
+                    <div>[WSXT]</div>
+                    <div>0 1 2 / 3 3 3 2 1 0 0 / 3 3 3 2 3 4 5 / 5 6 5 4 3</div>
+                    <div>6 6 5 4 3 4 7 5 3 / 3 2 2 3 / 3 3 3 4</div>
+                    <div>副歌</div>
+                    <div>[EDCYK]</div>
+                    <div>3 4 / 5 4 7 5 4 4 5 5 4 / 4 3 0 1</div>
+                    <div>3 4 / 5 4 7 5 4 4 5 5 4 / 4 4 5</div>
+                    <div>[G]</div>
+                    <div>3 4 / 5 4 7 5 4 4 5 5 4 / 4 2 4 3 2 1</div>
+                    <div>1 0 / 1 5 1 0 1 5 1 0 1</div>
+                    <div>尾奏</div>
+                    <div>[QAZI]</div>
+                    <div>3 4 / 5 4 3 2 3 2 1 3 4 / 5 4 7 5</div>
+                    <div>3 4 / 5 4 3 4 7 6 5 5 4 / 3 5 4 3</div>
+                    <div>3 4 / 5 4 7 6 5 3 4 /  5 4 7 6 5</div>
+                    <div>3 4 / 5 4 3 2 3 2 1 1 2 / 3 4 2 3</div>
+                    <div>[RFVIK]</div>
+                </div>
+            </div>
         </div>
-    </div>
 
-<script>
-/**
- * 核心状态与配置
- */
-const BPM = 100;
-const SECONDS_PER_BEAT = 60.0 / BPM;
-const SECONDS_PER_TICK = SECONDS_PER_BEAT / 4; // 十六分音符为最小单位(Tick)
-const TICKS_PER_BAR = 16;
-const BARS_PER_LOOP = 8;
-const TICKS_PER_LOOP = TICKS_PER_BAR * BARS_PER_LOOP; // 128 ticks (8小节)
+        <script>
+            /**
+             * 核心状态与配置
+             */
+            const BPM = 100;
+            const SECONDS_PER_BEAT = 60.0 / BPM;
+            const SECONDS_PER_TICK = SECONDS_PER_BEAT / 4; // 十六分音符为最小单位(Tick)
+            const TICKS_PER_BAR = 16;
+            const BARS_PER_LOOP = 8;
+            const TICKS_PER_LOOP = TICKS_PER_BAR * BARS_PER_LOOP; // 128 ticks (8小节)
 
-// 乐器轨道定义
-const TRACKS = [
-    { id: 'piano', name: '钢琴 (Piano)', keys: ['Q', 'W', 'E', 'R'] },
-    { id: 'bass', name: '贝斯 (Bass)', keys: ['A', 'S', 'D', 'F'] },
-    { id: 'guitar', name: '吉他 (Guitar)', keys: ['Z', 'X', 'C', 'V'] },
-    { id: 'strings', name: '弦乐 (Strings)', keys: ['T', 'Y', 'U', 'I'] },
-    { id: 'perc', name: '打击乐 (Perc)', keys: ['G', 'H', 'J', 'K'] }
-];
+            // 乐器轨道定义
+            const TRACKS = [
+                { id: 'piano', name: '钢琴 (Piano)', keys: ['Q', 'W', 'E', 'R'] },
+                { id: 'bass', name: '贝斯 (Bass)', keys: ['A', 'S', 'D', 'F'] },
+                { id: 'guitar', name: '吉他 (Guitar)', keys: ['Z', 'X', 'C', 'V'] },
+                { id: 'strings', name: '弦乐 (Strings)', keys: ['T', 'Y', 'U', 'I'] },
+                { id: 'perc', name: '打击乐 (Perc)', keys: ['G', 'H', 'J', 'K'] }
+            ];
 
-const ROOT_AUDIO_FILES = {
-    piano: ['piano-1.mp3', 'piano-2.mp3', 'piano-3.mp3'],
-    bass: ['bass-1.mp3', 'bass-2.mp3', 'bass-3.mp3'],
-    guitar: ['guitar-1.mp3', 'guitar-2.mp3', 'guitar-3.mp3'],
-    strings: ['violins-1.mp3', 'violins-2.mp3'],
-    perc: ['perc-1.mp3']
-};
+            const ROOT_AUDIO_FILES = {
+                piano: ['piano-1.mp3', 'piano-2.mp3', 'piano-3.mp3'],
+                bass: ['bass-1.mp3', 'bass-2.mp3', 'bass-3.mp3'],
+                guitar: ['guitar-1.mp3', 'guitar-2.mp3', 'guitar-3.mp3'],
+                strings: ['violins-1.mp3', 'violins-2.mp3'],
+                perc: ['perc-1.mp3']
+            };
 
-// 手动合成器音阶配置 (新增按键0对应的G4，随后是1-7对应的A4到G5)
-const SYNTH_NOTES = [
-    { note: 'G4', freq: 392.00, key: '0' }, // G4
-    { note: 'A4', freq: 440.00, key: '1' }, // A4
-    { note: 'B4', freq: 493.88, key: '2' }, // B4
-    { note: 'C5', freq: 523.25, key: '3' }, // C5
-    { note: 'D5', freq: 587.33, key: '4' }, // D5
-    { note: 'E5', freq: 659.25, key: '5' }, // E5
-    { note: 'F5', freq: 698.46, key: '6' }, // F5
-    { note: 'G5', freq: 783.99, key: '7' }  // G5
-];
+            // 手动合成器音阶配置 (新增按键0对应的G4，随后是1-7对应的A4到G5)
+            const SYNTH_NOTES = [
+                { note: 'G4', freq: 392.00, key: '0' }, // G4
+                { note: 'A4', freq: 440.00, key: '1' }, // A4
+                { note: 'B4', freq: 493.88, key: '2' }, // B4
+                { note: 'C5', freq: 523.25, key: '3' }, // C5
+                { note: 'D5', freq: 587.33, key: '4' }, // D5
+                { note: 'E5', freq: 659.25, key: '5' }, // E5
+                { note: 'F5', freq: 698.46, key: '6' }, // F5
+                { note: 'G5', freq: 783.99, key: '7' }  // G5
+            ];
 
-// 播放状态管理
-const state = {
-    active: { piano: 0, bass: 0, guitar: 0, strings: 0, perc: 0 },
-    queued: { piano: null, bass: null, guitar: null, strings: null, perc: null },
-    buffers: { piano: {1:null, 2:null, 3:null}, bass: {1:null, 2:null, 3:null}, guitar: {1:null, 2:null, 3:null}, strings: {1:null, 2:null, 3:null}, perc: {1:null, 2:null, 3:null} },
-    nodes: { piano: null, bass: null, guitar: null, strings: null, perc: null }
-};
+            // 播放状态管理
+            const state = {
+                active: { piano: 0, bass: 0, guitar: 0, strings: 0, perc: 0 },
+                queued: { piano: null, bass: null, guitar: null, strings: null, perc: null },
+                buffers: { piano: { 1: null, 2: null, 3: null }, bass: { 1: null, 2: null, 3: null }, guitar: { 1: null, 2: null, 3: null }, strings: { 1: null, 2: null, 3: null }, perc: { 1: null, 2: null, 3: null } },
+                nodes: { piano: null, bass: null, guitar: null, strings: null, perc: null }
+            };
 
-// 合成器当前按下的活跃音符通道映射
-const activeSynthVoices = {};
-// 防止键盘keydown重复触发导致声音重启
-const pressedKeys = {};
+            // 合成器当前按下的活跃音符通道映射
+            const activeSynthVoices = {};
+            // 防止键盘keydown重复触发导致声音重启
+            const pressedKeys = {};
 
-// Web Audio API 变量
-let audioCtx;
-let masterGain;
-let synthGainNode; // 合成器专属总控Gain节点
-let compressor;
-let isPlaying = false;
-let currentTick = 0;
-let nextTickTime = 0;
-let timerID;
-const LOOKAHEAD = 25.0; 
-const SCHEDULE_AHEAD_TIME = 0.1; 
+            // Web Audio API 变量
+            let audioCtx;
+            let masterGain;
+            let synthGainNode; // 合成器专属总控Gain节点
+            let compressor;
+            let isPlaying = false;
+            let currentTick = 0;
+            let nextTickTime = 0;
+            let timerID;
+            const LOOKAHEAD = 25.0;
+            const SCHEDULE_AHEAD_TIME = 0.1;
 
-/**
- * 界面初始化与渲染
- */
-function initUI() {
-    const grid = document.querySelector('.grid');
-    grid.innerHTML = '';
-    
-    TRACKS.forEach(track => {
-        const col = document.createElement('div');
-        col.className = 'flex flex-col bg-gray-800 rounded-xl p-4 border border-gray-700 shadow-md';
-        
-        let buttonsHTML = `<h2 class="text-lg font-bold text-center mb-4 text-gray-200">${track.name}</h2>`;
-        
-        for (let i = 1; i <= 3; i++) {
-            buttonsHTML += `
+            /**
+             * 界面初始化与渲染
+             */
+            function initUI() {
+                const grid = document.querySelector('.grid');
+                grid.innerHTML = '';
+
+                TRACKS.forEach(track => {
+                    const col = document.createElement('div');
+                    col.className = 'flex flex-col bg-gray-800 rounded-xl p-4 border border-gray-700 shadow-md';
+
+                    let buttonsHTML = `<h2 class="text-lg font-bold text-center mb-4 text-gray-200">${track.name}</h2>`;
+
+                    for (let i = 1; i <= 3; i++) {
+                        buttonsHTML += `
             <div class="flex gap-2 mb-3">
                 <button id="btn-${track.id}-${i}" data-track="${track.id}" data-pattern="${i}" class="btn-loop flex-grow bg-gray-700 text-gray-500 font-semibold py-3 px-2 text-sm rounded-lg flex justify-between items-center cursor-not-allowed transition-colors" disabled>
-                    片段 ${i} <kbd>${track.keys[i-1]}</kbd>
+                    片段 ${i} <kbd>${track.keys[i - 1]}</kbd>
                 </button>
             </div>`;
-        }
-        
-        buttonsHTML += `<div class="flex-grow"></div>
+                    }
+
+                    buttonsHTML += `<div class="flex-grow"></div>
         <button data-track="${track.id}" data-pattern="0" class="btn-loop bg-gray-900 hover:bg-gray-700 text-gray-400 border border-gray-600 font-semibold py-2 px-3 text-sm rounded-lg flex justify-between items-center mt-2 transition-colors">
             停止轨道 <kbd>${track.keys[3]}</kbd>
         </button>`;
-        
-        col.innerHTML = buttonsHTML;
-        grid.appendChild(col);
-    });
 
-    // 渲染合成器琴键 (0到7)
-    const synthContainer = document.getElementById('synth-keyboard');
-    synthContainer.innerHTML = '';
-    SYNTH_NOTES.forEach(item => {
-        const keyDiv = document.createElement('div');
-        keyDiv.id = `synth-key-${item.key}`;
-        keyDiv.className = 'key-pad-btn bg-gray-700 hover:bg-gray-600 border border-gray-600 rounded-lg p-3 flex flex-col items-center justify-center cursor-pointer select-none shadow';
-        keyDiv.innerHTML = `
+                    col.innerHTML = buttonsHTML;
+                    grid.appendChild(col);
+                });
+
+                // 渲染合成器琴键 (0到7)
+                const synthContainer = document.getElementById('synth-keyboard');
+                synthContainer.innerHTML = '';
+                SYNTH_NOTES.forEach(item => {
+                    const keyDiv = document.createElement('div');
+                    keyDiv.id = `synth-key-${item.key}`;
+                    keyDiv.className = 'key-pad-btn bg-gray-700 hover:bg-gray-600 border border-gray-600 rounded-lg p-3 flex flex-col items-center justify-center cursor-pointer select-none shadow';
+                    keyDiv.innerHTML = `
             <span class="text-xl font-bold text-white mb-0.5">${item.note}</span>
             <span class="text-xs text-gray-400">键 <kbd>${item.key}</kbd></span>
         `;
-        
-        keyDiv.addEventListener('mousedown', () => startSynthNote(item.freq, item.key));
-        keyDiv.addEventListener('mouseup', () => stopSynthNote(item.key));
-        keyDiv.addEventListener('mouseleave', () => stopSynthNote(item.key));
-        
-        synthContainer.appendChild(keyDiv);
-    });
 
-    // 绑定音量调节滑块事件
-    const volumeSlider = document.getElementById('synth-volume');
-    const volumeVal = document.getElementById('synth-volume-val');
-    volumeSlider.addEventListener('input', (e) => {
-        const val = parseFloat(e.target.value);
-        volumeVal.innerText = `${Math.round(val * 100)}%`;
-        if (synthGainNode && audioCtx) {
-            synthGainNode.gain.setValueAtTime(val, audioCtx.currentTime);
-        }
-    });
+                    keyDiv.addEventListener('mousedown', () => startSynthNote(item.freq, item.key));
+                    keyDiv.addEventListener('mouseup', () => stopSynthNote(item.key));
+                    keyDiv.addEventListener('mouseleave', () => stopSynthNote(item.key));
 
-    // 绑定事件
-    document.querySelectorAll('.btn-loop').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            const trackId = e.currentTarget.getAttribute('data-track');
-            const pattern = parseInt(e.currentTarget.getAttribute('data-pattern'));
-            handlePatternSelection(trackId, pattern);
-        });
-    });
-}
+                    synthContainer.appendChild(keyDiv);
+                });
 
-function updateUI() {
-    document.querySelectorAll('.btn-loop').forEach(btn => {
-        const track = btn.getAttribute('data-track');
-        const pattern = parseInt(btn.getAttribute('data-pattern'));
-        
-        btn.classList.remove('state-playing', 'state-queued', 'state-stopped-active');
-        
-        const isActive = state.active[track] === pattern;
-        const isQueued = state.queued[track] === pattern;
-        const hasBuffer = pattern === 0 || state.buffers[track][pattern] !== null;
-        
-        if (isQueued && hasBuffer) {
-            btn.classList.add('state-queued');
-        } else if (isActive) {
-            if (pattern !== 0 && hasBuffer) {
-                btn.classList.add('state-playing');
-            } else if (pattern === 0) {
-                btn.classList.add('state-stopped-active');
+                // 绑定音量调节滑块事件
+                const volumeSlider = document.getElementById('synth-volume');
+                const volumeVal = document.getElementById('synth-volume-val');
+                volumeSlider.addEventListener('input', (e) => {
+                    const val = parseFloat(e.target.value);
+                    volumeVal.innerText = `${Math.round(val * 100)}%`;
+                    if (synthGainNode && audioCtx) {
+                        synthGainNode.gain.setValueAtTime(val, audioCtx.currentTime);
+                    }
+                });
+
+                // 绑定事件
+                document.querySelectorAll('.btn-loop').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        const trackId = e.currentTarget.getAttribute('data-track');
+                        const pattern = parseInt(e.currentTarget.getAttribute('data-pattern'));
+                        handlePatternSelection(trackId, pattern);
+                    });
+                });
             }
-        }
-    });
 
-    const progressPercent = (currentTick / TICKS_PER_LOOP) * 100;
-    document.getElementById('progress-bar').style.width = `${progressPercent}%`;
-}
+            function updateUI() {
+                document.querySelectorAll('.btn-loop').forEach(btn => {
+                    const track = btn.getAttribute('data-track');
+                    const pattern = parseInt(btn.getAttribute('data-pattern'));
 
-/**
- * 实时合成器长音：开始发声 (Note On)
- */
-function startSynthNote(freq, keyIdentifier) {
-    if (!audioCtx) initAudio();
-    if (audioCtx.state === 'suspended') audioCtx.resume();
+                    btn.classList.remove('state-playing', 'state-queued', 'state-stopped-active');
 
-    if (activeSynthVoices[keyIdentifier]) return;
+                    const isActive = state.active[track] === pattern;
+                    const isQueued = state.queued[track] === pattern;
+                    const hasBuffer = pattern === 0 || state.buffers[track][pattern] !== null;
 
-    const now = audioCtx.currentTime;
-    
-    const osc = audioCtx.createOscillator();
-    const gainNode = audioCtx.createGain();
-    const filter = audioCtx.createBiquadFilter();
+                    if (isQueued && hasBuffer) {
+                        btn.classList.add('state-queued');
+                    } else if (isActive) {
+                        if (pattern !== 0 && hasBuffer) {
+                            btn.classList.add('state-playing');
+                        } else if (pattern === 0) {
+                            btn.classList.add('state-stopped-active');
+                        }
+                    }
+                });
 
-    osc.type = 'triangle';
-    osc.frequency.setValueAtTime(freq, now);
-
-    filter.type = 'lowpass';
-    filter.frequency.setValueAtTime(3000, now);
-
-    // 渐入包络 (Attack)
-    gainNode.gain.setValueAtTime(0, now);
-    gainNode.gain.linearRampToValueAtTime(0.3, now + 0.08);
-
-    osc.connect(filter);
-    filter.connect(gainNode);
-    gainNode.connect(synthGainNode); // 路由至合成器专属音量控制器
-
-    osc.start(now);
-
-    activeSynthVoices[keyIdentifier] = { osc, gainNode };
-
-    const keyEl = document.getElementById(`synth-key-${keyIdentifier}`);
-    if (keyEl) keyEl.classList.add('key-active');
-}
-
-/**
- * 实时合成器长音：结束发声 (Note Off)
- */
-function stopSynthNote(keyIdentifier) {
-    const voice = activeSynthVoices[keyIdentifier];
-    if (!voice) return;
-
-    const now = audioCtx.currentTime;
-    const { osc, gainNode } = voice;
-
-    gainNode.gain.cancelScheduledValues(now);
-    gainNode.gain.setValueAtTime(gainNode.gain.value, now);
-    gainNode.gain.linearRampToValueAtTime(0.0001, now + 0.25);
-
-    osc.stop(now + 0.25);
-
-    delete activeSynthVoices[keyIdentifier];
-
-    const keyEl = document.getElementById(`synth-key-${keyIdentifier}`);
-    if (keyEl) keyEl.classList.remove('key-active');
-}
-
-/**
- * 键盘长按事件监听
- */
-window.addEventListener('keydown', (e) => {
-    const synthMatch = SYNTH_NOTES.find(n => n.key === e.key);
-    if (synthMatch) {
-        if (!pressedKeys[e.key]) {
-            pressedKeys[e.key] = true;
-            startSynthNote(synthMatch.freq, synthMatch.key);
-        }
-        return;
-    }
-
-    const key = e.key.toUpperCase();
-    TRACKS.forEach(track => {
-        const idx = track.keys.indexOf(key);
-        if (idx !== -1) {
-            const pattern = idx === 3 ? 0 : idx + 1;
-            handlePatternSelection(track.id, pattern);
-            
-            const btn = document.querySelector(`button[data-track="${track.id}"][data-pattern="${pattern}"]`);
-            if (btn) {
-                btn.style.transform = 'scale(0.95)';
-                setTimeout(() => btn.style.transform = 'none', 100);
+                const progressPercent = (currentTick / TICKS_PER_LOOP) * 100;
+                document.getElementById('progress-bar').style.width = `${progressPercent}%`;
             }
-        }
-    });
-});
 
-window.addEventListener('keyup', (e) => {
-    const synthMatch = SYNTH_NOTES.find(n => n.key === e.key);
-    if (synthMatch) {
-        pressedKeys[e.key] = false;
-        stopSynthNote(synthMatch.key);
-    }
-});
+            /**
+             * 实时合成器长音：开始发声 (Note On)
+             */
+            function startSynthNote(freq, keyIdentifier) {
+                if (!audioCtx) initAudio();
+                if (audioCtx.state === 'suspended') audioCtx.resume();
 
-function handlePatternSelection(track, pattern) {
-    if (pattern !== 0 && state.buffers[track][pattern] === null) {
-        return;
-    }
+                if (activeSynthVoices[keyIdentifier]) return;
 
-    if (!audioCtx) initAudio();
-    
-    if (!isPlaying) {
-        state.active[track] = pattern;
-        toggleMaster();
-        return;
-    }
+                const now = audioCtx.currentTime;
 
-    if (state.queued[track] === pattern || (state.active[track] === pattern && state.queued[track] === null)) {
-        return;
-    }
+                const osc = audioCtx.createOscillator();
+                const gainNode = audioCtx.createGain();
+                const filter = audioCtx.createBiquadFilter();
 
-    state.queued[track] = pattern;
-    updateUI();
-}
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(freq, now);
 
-document.getElementById('master-btn').addEventListener('click', toggleMaster);
+                filter.type = 'lowpass';
+                filter.frequency.setValueAtTime(3000, now);
 
-async function loadBuiltInAudio() {
-    if (!audioCtx) initAudio();
-    if (audioCtx.state === 'suspended') audioCtx.resume();
+                // 渐入包络 (Attack)
+                gainNode.gain.setValueAtTime(0, now);
+                gainNode.gain.linearRampToValueAtTime(0.3, now + 0.08);
 
-    for (const track of TRACKS) {
-        const files = ROOT_AUDIO_FILES[track.id] || [];
+                osc.connect(filter);
+                filter.connect(gainNode);
+                gainNode.connect(synthGainNode); // 路由至合成器专属音量控制器
 
-        for (let i = 0; i < files.length; i++) {
-            const pattern = i + 1;
-            const fileName = files[i];
-            const url = `./${fileName}`;
+                osc.start(now);
 
-            try {
-                const response = await fetch(url);
-                if (!response.ok) {
-                    throw new Error(`Fetch failed: ${response.status}`);
+                activeSynthVoices[keyIdentifier] = { osc, gainNode };
+
+                const keyEl = document.getElementById(`synth-key-${keyIdentifier}`);
+                if (keyEl) keyEl.classList.add('key-active');
+            }
+
+            /**
+             * 实时合成器长音：结束发声 (Note Off)
+             */
+            function stopSynthNote(keyIdentifier) {
+                const voice = activeSynthVoices[keyIdentifier];
+                if (!voice) return;
+
+                const now = audioCtx.currentTime;
+                const { osc, gainNode } = voice;
+
+                gainNode.gain.cancelScheduledValues(now);
+                gainNode.gain.setValueAtTime(gainNode.gain.value, now);
+                gainNode.gain.linearRampToValueAtTime(0.0001, now + 0.25);
+
+                osc.stop(now + 0.25);
+
+                delete activeSynthVoices[keyIdentifier];
+
+                const keyEl = document.getElementById(`synth-key-${keyIdentifier}`);
+                if (keyEl) keyEl.classList.remove('key-active');
+            }
+
+            /**
+             * 键盘长按事件监听
+             */
+            window.addEventListener('keydown', (e) => {
+                const synthMatch = SYNTH_NOTES.find(n => n.key === e.key);
+                if (synthMatch) {
+                    if (!pressedKeys[e.key]) {
+                        pressedKeys[e.key] = true;
+                        startSynthNote(synthMatch.freq, synthMatch.key);
+                    }
+                    return;
                 }
 
-                const arrayBuffer = await response.arrayBuffer();
-                const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer.slice(0));
-                state.buffers[track.id][pattern] = audioBuffer;
+                const key = e.key.toUpperCase();
+                TRACKS.forEach(track => {
+                    const idx = track.keys.indexOf(key);
+                    if (idx !== -1) {
+                        const pattern = idx === 3 ? 0 : idx + 1;
+                        handlePatternSelection(track.id, pattern);
 
-                const btn = document.getElementById(`btn-${track.id}-${pattern}`);
-                if (btn) {
-                    btn.disabled = false;
-                    btn.classList.remove('text-gray-500', 'cursor-not-allowed', 'bg-gray-700');
-                    btn.classList.add('text-gray-200', 'hover:bg-gray-600', 'bg-gray-700');
-                    btn.innerHTML = `片段 ${pattern} <span class="text-xs text-green-400 font-bold ml-1">就绪</span> <kbd>${btn.querySelector('kbd').innerText}</kbd>`;
+                        const btn = document.querySelector(`button[data-track="${track.id}"][data-pattern="${pattern}"]`);
+                        if (btn) {
+                            btn.style.transform = 'scale(0.95)';
+                            setTimeout(() => btn.style.transform = 'none', 100);
+                        }
+                    }
+                });
+            });
+
+            window.addEventListener('keyup', (e) => {
+                const synthMatch = SYNTH_NOTES.find(n => n.key === e.key);
+                if (synthMatch) {
+                    pressedKeys[e.key] = false;
+                    stopSynthNote(synthMatch.key);
                 }
-            } catch (err) {
-                console.warn(`无法加载根目录音频: ${url}`, err);
+            });
+
+            function handlePatternSelection(track, pattern) {
+                if (pattern !== 0 && state.buffers[track][pattern] === null) {
+                    return;
+                }
+
+                if (!audioCtx) initAudio();
+
+                if (!isPlaying) {
+                    state.active[track] = pattern;
+                    toggleMaster();
+                    return;
+                }
+
+                if (state.queued[track] === pattern || (state.active[track] === pattern && state.queued[track] === null)) {
+                    return;
+                }
+
+                state.queued[track] = pattern;
+                updateUI();
             }
-        }
-    }
 
-    updateUI();
-}
+            document.getElementById('master-btn').addEventListener('click', toggleMaster);
 
-function toggleMaster() {
-    if (!audioCtx) initAudio();
-    
-    if (audioCtx.state === 'suspended') {
-        audioCtx.resume();
-    }
-    
-    const btn = document.getElementById('master-btn');
-    if (isPlaying) {
-        isPlaying = false;
-        clearTimeout(timerID);
-        btn.innerHTML = '▶ 启动引擎 (全局播放)';
-        btn.classList.replace('bg-red-600', 'bg-blue-600');
-        btn.classList.replace('hover:bg-red-500', 'hover:bg-blue-500');
-        currentTick = 0; 
-        document.getElementById('progress-bar').style.width = '0%';
-        
-        for (let t in state.nodes) {
-            if (state.nodes[t]) {
-                try { state.nodes[t].stop(); } catch(e) {}
-                state.nodes[t] = null;
+            async function loadBuiltInAudio() {
+                if (!audioCtx) initAudio();
+                if (audioCtx.state === 'suspended') audioCtx.resume();
+
+                for (const track of TRACKS) {
+                    const files = ROOT_AUDIO_FILES[track.id] || [];
+
+                    for (let i = 0; i < files.length; i++) {
+                        const pattern = i + 1;
+                        const fileName = files[i];
+                        const url = `./${fileName}`;
+
+                        try {
+                            const response = await fetch(url);
+                            if (!response.ok) {
+                                throw new Error(`Fetch failed: ${response.status}`);
+                            }
+
+                            const arrayBuffer = await response.arrayBuffer();
+                            const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer.slice(0));
+                            state.buffers[track.id][pattern] = audioBuffer;
+
+                            const btn = document.getElementById(`btn-${track.id}-${pattern}`);
+                            if (btn) {
+                                btn.disabled = false;
+                                btn.classList.remove('text-gray-500', 'cursor-not-allowed', 'bg-gray-700');
+                                btn.classList.add('text-gray-200', 'hover:bg-gray-600', 'bg-gray-700');
+                                btn.innerHTML = `片段 ${pattern} <span class="text-xs text-green-400 font-bold ml-1">就绪</span> <kbd>${btn.querySelector('kbd').innerText}</kbd>`;
+                            }
+                        } catch (err) {
+                            console.warn(`无法加载根目录音频: ${url}`, err);
+                        }
+                    }
+                }
+
+                updateUI();
             }
-        }
-    } else {
-        isPlaying = true;
-        btn.innerHTML = '■ 停止引擎';
-        btn.classList.replace('bg-blue-600', 'bg-red-600');
-        btn.classList.replace('hover:bg-blue-500', 'hover:bg-red-500');
-        nextTickTime = audioCtx.currentTime + 0.1;
-        scheduler();
-    }
-    updateUI();
-}
 
-/**
- * Web Audio API 与 音频调度
- */
-function initAudio() {
-    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    
-    masterGain = audioCtx.createGain();
-    masterGain.gain.value = 0.8;
+            function toggleMaster() {
+                if (!audioCtx) initAudio();
 
-    // 创建合成器专用音量控制节点
-    synthGainNode = audioCtx.createGain();
-    const currentSliderVal = parseFloat(document.getElementById('synth-volume').value);
-    synthGainNode.gain.value = currentSliderVal;
-    synthGainNode.connect(masterGain);
-    
-    compressor = audioCtx.createDynamicsCompressor();
-    compressor.threshold.value = -24;
-    compressor.knee.value = 30;
-    compressor.ratio.value = 12;
-    compressor.attack.value = 0.003;
-    compressor.release.value = 0.25;
+                if (audioCtx.state === 'suspended') {
+                    audioCtx.resume();
+                }
 
-    masterGain.connect(compressor);
-    compressor.connect(audioCtx.destination);
-}
+                const btn = document.getElementById('master-btn');
+                if (isPlaying) {
+                    isPlaying = false;
+                    clearTimeout(timerID);
+                    btn.innerHTML = '▶ 启动引擎 (全局播放)';
+                    btn.classList.replace('bg-red-600', 'bg-blue-600');
+                    btn.classList.replace('hover:bg-red-500', 'hover:bg-blue-500');
+                    currentTick = 0;
+                    document.getElementById('progress-bar').style.width = '0%';
 
-function nextTick() {
-    nextTickTime += SECONDS_PER_TICK;
-    currentTick++;
-    if (currentTick >= TICKS_PER_LOOP) {
-        currentTick = 0; 
-    }
-}
-
-function scheduler() {
-    while (nextTickTime < audioCtx.currentTime + SCHEDULE_AHEAD_TIME) {
-        scheduleTick(currentTick, nextTickTime);
-        nextTick();
-    }
-    requestAnimationFrame(updateUI);
-    timerID = setTimeout(scheduler, LOOKAHEAD);
-}
-
-function scheduleTick(tick, time) {
-    if (tick === 0) {
-        let changed = false;
-        for (let track in state.queued) {
-            if (state.queued[track] !== null) {
-                state.active[track] = state.queued[track];
-                state.queued[track] = null;
-                changed = true;
+                    for (let t in state.nodes) {
+                        if (state.nodes[t]) {
+                            try { state.nodes[t].stop(); } catch (e) { }
+                            state.nodes[t] = null;
+                        }
+                    }
+                } else {
+                    isPlaying = true;
+                    btn.innerHTML = '■ 停止引擎';
+                    btn.classList.replace('bg-blue-600', 'bg-red-600');
+                    btn.classList.replace('hover:bg-blue-500', 'hover:bg-red-500');
+                    nextTickTime = audioCtx.currentTime + 0.1;
+                    scheduler();
+                }
+                updateUI();
             }
-        }
-        if (changed) updateUI();
 
-        for (let track of TRACKS) {
-            const pattern = state.active[track.id];
-            if (pattern > 0) {
-                const buffer = state.buffers[track.id][pattern];
-                if (buffer) {
-                    playSample(track.id, buffer, time);
+            /**
+             * Web Audio API 与 音频调度
+             */
+            function initAudio() {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+                masterGain = audioCtx.createGain();
+                masterGain.gain.value = 0.8;
+
+                // 创建合成器专用音量控制节点
+                synthGainNode = audioCtx.createGain();
+                const currentSliderVal = parseFloat(document.getElementById('synth-volume').value);
+                synthGainNode.gain.value = currentSliderVal;
+                synthGainNode.connect(masterGain);
+
+                compressor = audioCtx.createDynamicsCompressor();
+                compressor.threshold.value = -24;
+                compressor.knee.value = 30;
+                compressor.ratio.value = 12;
+                compressor.attack.value = 0.003;
+                compressor.release.value = 0.25;
+
+                masterGain.connect(compressor);
+                compressor.connect(audioCtx.destination);
+            }
+
+            function nextTick() {
+                nextTickTime += SECONDS_PER_TICK;
+                currentTick++;
+                if (currentTick >= TICKS_PER_LOOP) {
+                    currentTick = 0;
                 }
             }
-        }
-    }
-}
 
-function playSample(trackId, buffer, time) {
-    if (state.nodes[trackId]) {
-        try { state.nodes[trackId].stop(time); } catch(e) {}
-    }
-    
-    const source = audioCtx.createBufferSource();
-    source.buffer = buffer;
-    source.connect(masterGain);
-    source.start(time);
-    
-    state.nodes[trackId] = source;
-}
+            function scheduler() {
+                while (nextTickTime < audioCtx.currentTime + SCHEDULE_AHEAD_TIME) {
+                    scheduleTick(currentTick, nextTickTime);
+                    nextTick();
+                }
+                requestAnimationFrame(updateUI);
+                timerID = setTimeout(scheduler, LOOKAHEAD);
+            }
 
-window.onload = async () => {
-    initUI();
-    await loadBuiltInAudio();
-};
-</script>
+            function scheduleTick(tick, time) {
+                if (tick === 0) {
+                    let changed = false;
+                    for (let track in state.queued) {
+                        if (state.queued[track] !== null) {
+                            state.active[track] = state.queued[track];
+                            state.queued[track] = null;
+                            changed = true;
+                        }
+                    }
+                    if (changed) updateUI();
+
+                    for (let track of TRACKS) {
+                        const pattern = state.active[track.id];
+                        if (pattern > 0) {
+                            const buffer = state.buffers[track.id][pattern];
+                            if (buffer) {
+                                playSample(track.id, buffer, time);
+                            }
+                        }
+                    }
+                }
+            }
+
+            function playSample(trackId, buffer, time) {
+                if (state.nodes[trackId]) {
+                    try { state.nodes[trackId].stop(time); } catch (e) { }
+                }
+
+                const source = audioCtx.createBufferSource();
+                source.buffer = buffer;
+                source.connect(masterGain);
+                source.start(time);
+
+                state.nodes[trackId] = source;
+            }
+
+            window.onload = async () => {
+                initUI();
+                await loadBuiltInAudio();
+            };
+        </script>
 
 </body>
+
 </html>
